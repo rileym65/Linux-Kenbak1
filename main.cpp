@@ -9,12 +9,15 @@
 
 int main(int argc, char** argv) {
   UInt32 i;
+  Int32  fpos;
   Image* kenbak;
   Boolean debugMode;
 
+  fpos = -1;
   debugMode = false;
   for (i=0; i<argc; i++) {
     if (strcmp(argv[i],"-d") == 0) debugMode = true;
+    else fpos = i;
     }
   
   app = new Application();
@@ -36,6 +39,9 @@ int main(int argc, char** argv) {
 
   cpu = new Cpu();
   cpu->DebugMode(debugMode);
+  if (fpos > 0) {
+    cpu->Load(argv[fpos]);
+    }
   window = new MainWindow(cpu, 1024, 240);
   window->BackgroundImage(kenbak);
   window->Text("Kenbak-I");

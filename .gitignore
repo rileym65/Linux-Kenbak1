@@ -4,5 +4,6 @@ kenbak
 kenbak-1.doc
 cs/*
 Images/*.inc
+*.hex
 *.o
 *.pdf

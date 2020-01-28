@@ -378,3 +378,51 @@ void Cpu::DebugMode(Boolean b) {
   debugMode = b;
   }
 
+void Cpu::Load(char* filename) {
+  UInt32        i;
+  char          c;
+  Byte          address;
+  Byte          value;
+  Boolean       valid;
+  StreamReader *file;
+  String        line;
+  if (!File::Exists(filename)) {
+    printf("File %s does not exist\n",filename);
+    return;
+    }
+  file = new StreamReader(filename);
+  address = 0;
+  value = 0;
+  valid = false;
+  while (!file->EndOfStream()) {
+    line = file->ReadLine().ToUpper().Trim();
+    for (i=0; i<line.Length(); i++) {
+      c = line.CharAt(i);
+      if (c >= '0' && c <= '9') {
+        value = (value << 4) | (c - '0');
+        valid = true;
+        }
+      if (c >= 'A' && c <= 'F') {
+        value = (value << 4) | (c - 'A' + 10);
+        valid = true;
+        }
+      if (c == ':') {
+        address = value;
+        value = 0;
+        valid = false;
+        }
+      if (c == ' ' && valid) {
+        memory[address++] = value;
+        value = 0;
+        valid = false;
+        }
+      }
+    if (valid) {
+      memory[address++] = value;
+      value = 0;
+      valid = false;
+      }
+    }
+  delete(file);
+  }
+

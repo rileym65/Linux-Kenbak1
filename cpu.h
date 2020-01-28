@@ -61,6 +61,7 @@ class Cpu : public Thread {
     void StopButton();
     Byte Lamps();
     Byte LampMode();
+    void Load(char* filename);
   };
 
 
