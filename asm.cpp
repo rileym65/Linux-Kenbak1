@@ -642,6 +642,12 @@ void assembleLine(String line) {
     else if (opcode.Equals("DATA")) assembleData();
     else if (opcode.Equals("ORG")) assembleOrg();
     else if (opcode.Equals("END")) assembleStart();
+    else {
+      if (pass == 2) {
+        errors++;
+        printf("Error: Invalid opcode: %s\n", opcode.AsCharArray());
+        }
+      }
     if (pass == 2) {
       while (outputLine.Length() < 20) outputLine = outputLine + String(" ");
       printf("%s%s\n",outputLine.AsCharArray(), line.AsCharArray());
@@ -716,7 +722,7 @@ void Assemble(List<String*> *lines) {
   if (showCref) {
     for (i=0; i<labels->Count(); i++) {
       label = labels->At(i);
-      printf("%-20s  <%02x>  ", label->name->AsCharArray(),
+      printf("%-16s  <%02x>  ", label->name->AsCharArray(),
                              label->value);
       for (j=0; j<label->references->Count(); j++)
         printf(" %d",label->references->At(j));
