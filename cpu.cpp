@@ -21,13 +21,6 @@ void Cpu::clearMem() {
   for (i = 0; i < 256; i++) memory[i] = 0;
   }
 
-Byte Cpu::fetch() {
-  Byte ret;
-  ret = memory[memory[REG_P]];
-  memory[REG_P]++;
-  return ret;
-  }
-
 char* Cpu::regToString(Byte reg) {
   static char buffer[3];
   strcpy(buffer,"");
@@ -56,7 +49,7 @@ void Cpu::doJump() {
   Boolean jump;
   char    buffer[64];
   jump = false;
-  ea = fetch();
+  ea = memory[(memory[REG_P]+1) & 0xff];
   if (debugMode) {
     printf("%s", (((inst & 0x10) == 0) ? "JP" : "JM"));
     printf("%s", (((inst & 0x08) == 0) ? "D " : "I "));
@@ -106,23 +99,26 @@ void Cpu::doJump() {
     }
   if (jump) {
     if ((inst & 0x10) != 0) {
-      memory[ea] = memory[REG_P];
+      memory[ea] = (memory[REG_P] + 2) & 0xff;
       memory[REG_P] = (Byte)(ea+1);
       }
     else {
       memory[REG_P] = ea;
       }
     }
+  else memory[REG_P] += 2;
   }
 
 void Cpu::doHalt() {
   running = false;
   lampMode = LAMPS_NONE;
   if (debugMode) printf("HALT");
+  memory[REG_P]++;
   }
 
 void Cpu::doNop() {
   if (debugMode) printf("NOP");
+  memory[REG_P]++;
   }
 
 void Cpu::doShift() {
@@ -160,19 +156,28 @@ void Cpu::doShift() {
         }
       }
     }
+  memory[REG_P]++;
   }
 
 void Cpu::doSkip() {
   Byte mask;
   Byte value;
+  Byte ea;
   if (debugMode) {
     printf("SKP%s",(((reg & 1) == 1) ? "1" : "0"));
-    printf(" %d,%s",middle,addressToString(4,memory[REG_P]));
+    printf(" %d,%s",middle,addressToString(4,memory[(memory[REG_P]+1)&0xff]));
     }
+  ea = memory[(memory[REG_P]+1) & 0xff];
   mask = (Byte)(1 << middle);
-  value = (Byte)(memory[fetch()] & mask);
-  if (((reg & 1) == 0) && value == 0) memory[REG_P] += 2;
-  if (((reg & 1) == 1) && value != 0) memory[REG_P] += 2;
+  value = memory[ea] & mask;
+  if ((reg & 1) == 0) {
+    if (value == 0) memory[REG_P] += 4;
+      else memory[REG_P] += 2;
+    }
+  if ((reg & 1) == 1) {
+    if (value != 0) memory[REG_P] += 4;
+      else memory[REG_P] += 2;
+    }
   }
 
 void Cpu::doSet() {
@@ -180,7 +185,7 @@ void Cpu::doSet() {
   Byte value;
   Byte ea;
   mask = (Byte)(1 << middle);
-  ea = fetch();
+  ea = memory[(memory[REG_P]+1) & 0xff];
   if (debugMode) {
     printf("SET%s", (((reg & 1) == 1) ? "1" : "0"));
     printf(" %d,%s",middle,addressToString(4,ea));
@@ -189,6 +194,7 @@ void Cpu::doSet() {
   if ((reg & 1) == 1) value |= mask;
   else value &= (Byte)(~mask);
   memory[ea] = value;
+  memory[REG_P] += 2;
   }
 
 void Cpu::doGroup1(Byte ea) {
@@ -233,6 +239,7 @@ void Cpu::doGroup1(Byte ea) {
          memory[ea] = memory[reg];
          break;
     }
+  memory[REG_P] += 2;
   }
 
 void Cpu::doGroup2(Byte ea) {
@@ -253,6 +260,7 @@ void Cpu::doGroup2(Byte ea) {
          memory[REG_A] = (Byte)(~memory[ea] + 1);
          break;
     }
+  memory[REG_P] += 2;
   }
 
 void Cpu::Cycle() {
@@ -263,7 +271,7 @@ void Cpu::Cycle() {
   if (debugMode) {
     printf("[%02x] ",memory[REG_P]);
     }
-  inst = fetch();
+  inst = memory[memory[REG_P]];
   if (debugMode) {
     printf("%02x ",inst);
     }
@@ -279,25 +287,26 @@ void Cpu::Cycle() {
     case 2: if (reg > 1) doSkip(); else doSet();
         break;
     case 3:
-        ea = memory[REG_P]++;
+        ea = (memory[REG_P] + 1) & 0xff;
         if (reg != 3) doGroup1(ea); else doGroup2(ea);
         break;
     case 4:
-        ea = fetch();
+        ea = memory[(memory[REG_P]+1) & 0xff];
         if (reg != 3) doGroup1(ea); else doGroup2(ea);
         break;
     case 5:
-        ea = fetch();
+        ea = memory[(memory[REG_P]+1) & 0xff];
         ea = memory[ea];
         if (reg != 3) doGroup1(ea); else doGroup2(ea);
         break;
     case 6:
-        ea = (Byte)(fetch() + memory[REG_X]);
+        ea = memory[(memory[REG_P]+1) & 0xff];
+        ea = (ea + memory[REG_X]) & 0xff;
         if (reg != 3) doGroup1(ea); else doGroup2(ea);
         break;
     case 7:
-        ea = fetch();
-        ea = (Byte)(memory[ea] + memory[REG_X]);
+        ea = memory[(memory[REG_P]+1) & 0xff];
+        ea = (memory[ea] + memory[REG_X]) & 0xff;
         if (reg != 3) doGroup1(ea); else doGroup2(ea);
         break;
     }

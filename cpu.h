@@ -37,7 +37,6 @@ class Cpu : public Thread {
     void doSet();
     void doShift();
     void doSkip();
-    Byte fetch();
     char* regToString(Byte reg);
     virtual void execute(void* arg);
   public:
